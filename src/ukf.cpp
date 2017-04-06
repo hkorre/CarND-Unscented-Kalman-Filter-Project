@@ -25,10 +25,10 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = 0.2;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = 0.2;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -64,6 +64,7 @@ UKF::UKF() {
   //define spreading parameter
   lambda_ = 3 - n_aug_;
 
+  //create matrix with predicted sigma points as columns
   Xsig_pred_ = MatrixXd(n_x_, 2*n_aug_+1);
 
   //create vector for weights
@@ -85,7 +86,6 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-  std::cout << "UKF: ProcessMeansurement..." << std::endl;
   /**
   TODO:
 
@@ -128,16 +128,12 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   // prediction...
   float dt = (meas_package.timestamp_ - time_us_) / 1000000.0;	//dt - expressed in seconds
   time_us_ = meas_package.timestamp_;
-  std::cout << "UKF: dt = " << dt << std::endl;
   Prediction(dt);
-  std::cout << "UKF: Prediction done." << std::endl;
 
   // update...
   if ((meas_package.sensor_type_ == MeasurementPackage::RADAR) && use_radar_) {
-    std::cout << "UKF: UpdateRadar..." << std::endl;
     UpdateRadar(meas_package);
   } else if ((meas_package.sensor_type_ == MeasurementPackage::LASER) && use_laser_) {
-    std::cout << "UKF: UpdateLidar..." << std::endl;
     UpdateLidar(meas_package);
   }
 
@@ -189,11 +185,7 @@ void UKF::Prediction(double delta_t) {
     Xsig_aug.col(i+1+n_aug_) = x_aug - sqrt(lambda_+n_aug_) * L.col(i);
   }
 
-
   // Predict Sigma Points /////////////////////////////////////////////////////
-
-  //create matrix with predicted sigma points as columns
-  Xsig_pred_ = MatrixXd(n_x_, 2*n_aug_+1);
 
   //predict sigma points
   for (int i = 0; i< 2*n_aug_+1; i++)
@@ -240,13 +232,11 @@ void UKF::Prediction(double delta_t) {
     Xsig_pred_(4,i) = yawd_p;
   }
 
-
   // Predict state mean ///////////////////////////////////////////////////////
   x_.fill(0.0);
   for (int i = 0; i < 2*n_aug_+1; i++) {  //iterate over sigma points
     x_ = x_ + weights_(i) * Xsig_pred_.col(i);
   }
-
 
   // Predicted state covariance matrix ///////////////////////////////////////
   P_.fill(0.0);
@@ -254,6 +244,7 @@ void UKF::Prediction(double delta_t) {
 
     // state difference
     VectorXd x_diff = Xsig_pred_.col(i) - x_;
+
     //angle normalization
     while (x_diff(3)> M_PI) x_diff(3)-=2.*M_PI;
     while (x_diff(3)<-M_PI) x_diff(3)+=2.*M_PI;
