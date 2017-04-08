@@ -76,7 +76,6 @@ UKF::UKF() {
     weights_(i) = weight;
   }
 
-  std::cout << "UKF: constructor done." << std::endl;
 }
 
 UKF::~UKF() {}
@@ -121,7 +120,6 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
     // done initializing, no need to predict or update
     is_initialized_ = true;
-    std::cout << "UKF: Initialized." << std::endl;
     return;
   }
 
@@ -384,6 +382,12 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
     double v1 = cos(yaw)*v;
     double v2 = sin(yaw)*v;
+
+    // handle pos = (0,0) to avoid division by zero in Zsig(2,i)
+    if ((p_x == 0) && (p_y == 0)) {
+      p_x = 0.000001;
+      p_y = 0.000001;
+    }
 
     // measurement model
     Zsig(0,i) = sqrt(p_x*p_x + p_y*p_y);                        //r
